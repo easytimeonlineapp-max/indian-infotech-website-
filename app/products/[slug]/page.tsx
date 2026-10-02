@@ -1,0 +1,135 @@
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { PageHero } from '../../_components/page-hero';
+import { SiteFooter } from '../../_components/site-footer';
+import { SiteHeader } from '../../_components/site-header';
+import { ProductViewer } from '../../../components/catalog/product-viewer';
+import { ProductCatalogue } from '../../../components/catalog/product-catalogue';
+import { StructuredData } from '../../../components/structured-data';
+import { absoluteUrl, createPageMetadata } from '@/lib/site';
+import { products } from '../../content';
+
+const categorySlugs = [...new Set(products.map((product) => product.family))].map((family) => ({ family, slug: family.toLowerCase().replace(/\s+/g, '-') }));
+
+type ProductPageProps = { params: Promise<{ slug: string }> };
+
+export function generateStaticParams() {
+  return [...products.map((product) => ({ slug: product.slug })), ...categorySlugs.map(({ slug }) => ({ slug }))];
+}
+
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const category = categorySlugs.find((item) => item.slug === slug);
+  if (category) return createPageMetadata({ title: `${category.family} products`, description: `Explore Indian Infotech ${category.family.toLowerCase()} products and devices.`, path: `/products/${category.slug}` });
+  const product = products.find((item) => item.slug === slug);
+  if (!product) return {};
+  return createPageMetadata({ title: `${product.name} ${product.family}`, description: product.description, path: `/products/${product.slug}`, image: product.image ?? null });
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
+  const { slug } = await params;
+  const category = categorySlugs.find((item) => item.slug === slug);
+  if (category) {
+    const categoryProducts = products.filter((product) => product.family === category.family);
+    return <main><SiteHeader /><PageHero eyebrow="Product category" title={`${category.family} products`} description={`Explore the published Indian Infotech ${category.family.toLowerCase()} portfolio. Select a device for its full product detail page.`} marker="II / PRODUCT CATEGORY" breadcrumbs={[{ label: 'Products', href: '/products' }, { label: category.family }]} path={`/products/${category.slug}`} /><section className="section product-catalog"><ProductCatalogue products={categoryProducts} /></section><SiteFooter /></main>;
+  }
+  const product = products.find((item) => item.slug === slug);
+  if (!product) notFound();
+  const images = product.image ? [product.image] : product.images ?? [];
+  const specifications = [{ label: 'Model', value: product.name }, { label: 'Product type', value: product.family }, { label: 'Authentication method', value: product.authentication }, { label: 'Application', value: product.application }, { label: 'Connectivity', value: product.connectivity }, { label: 'Software compatibility', value: product.softwareCompatibility }, { label: 'Deployment', value: product.deployment }, ...(product.specifications ?? [])].filter((specification, index, all) => specification.value.trim() && all.findIndex((item) => item.label === specification.label) === index);
+  const related = products.filter((item) => item.family === product.family && item.slug !== product.slug).slice(0, 3);
+  const usageSteps = product.family === 'Attendance'
+    ? ['Confirm the workforce, shifts, locations, and attendance policy.', 'Install the device at an assessed entry point with approved power and network.', 'Enroll authorized users and test authentication, exceptions, and offline handling.', 'Connect approved attendance software and review records before payroll use.']
+    : product.family === 'Access control'
+      ? ['Confirm the door, user group, access levels, and safety requirements.', 'Mount and power the device according to the approved site installation plan.', 'Enroll authorized users and test authentication, fallback, and exit behavior.', 'Connect the approved access software and review events with the security owner.']
+      : ['Confirm the entry lane, throughput, safety clearance, and operating owner.', 'Install and align the equipment with the approved access-control layout.', 'Connect the controller or screening workflow and test safe operating behavior.', 'Train operators, document exceptions, and schedule routine inspection and support.'];
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    model: product.name,
+    description: product.description,
+    brand: { '@type': 'Brand', name: 'Indian Infotech' },
+    category: product.family,
+    image: images.map((image) => absoluteUrl(image)),
+    url: absoluteUrl(`/products/${product.slug}`),
+  };
+  const productFaqs = [
+    { question: `What is the ${product.name} used for?`, answer: `${product.description} Its primary published application is ${product.application.toLowerCase()}.` },
+    { question: `How does the ${product.name} authenticate users?`, answer: `The published authentication category is ${product.authentication.toLowerCase()}. Exact enrollment and operating capability must be confirmed for the selected configuration.` },
+    { question: `Which software works with the ${product.name}?`, answer: `${product.softwareCompatibility}. Indian Infotech confirms the software, connectivity, data flow, and version requirements during solution design.` },
+    { question: `How should the ${product.name} be selected and deployed?`, answer: `${product.deployment}. Review the users, entry point, environment, power, network, workflow, and support needs before purchase.` },
+  ];
+  const faqSchema = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: productFaqs.map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })) };
+
+  return (
+    <main>
+      <SiteHeader />
+      <StructuredData data={productSchema} />
+      <StructuredData data={faqSchema} />
+      <PageHero eyebrow={product.family} title={product.name} description={product.description} marker="II / PRODUCT" breadcrumbs={[{ label: 'Products', href: '/products' }, { label: product.name }]} path={`/products/${product.slug}`} />
+
+      <section className="product-detail section">
+        <ProductViewer name={product.name} images={images} />
+
+        <div className="product-detail-copy">
+          <p className="section-kicker">Selection overview</p>
+          <h2>Choose this device in the context of the complete operating workflow.</h2>
+          <p>{product.description} Indian Infotech can help assess the entry point, user flow, operating environment, and software requirements before final selection.</p>
+          <dl className="product-summary-list">
+            {specifications.map((specification) => <div key={specification.label}><dt>{specification.label}</dt><dd>{specification.value}</dd></div>)}
+          </dl>
+          <div className="hero-actions product-actions">
+            <Link className="button button-primary" href={`/contact?product=${product.slug}`}>Request a quote <span aria-hidden="true">↗</span></Link>
+            <Link className="button outline-button" href={`/compare?products=${product.slug}#product-comparison`}>Compare this product</Link>
+            <Link className="button outline-button" href="/contact">Talk to an engineer</Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="section product-usage-section" aria-labelledby="product-usage-title">
+        <div className="section-heading split-heading"><div><p className="section-kicker">How to use this product</p><h2 id="product-usage-title">A clear path from selection to daily operation.</h2></div><p>Use these steps as a starting point. Final installation, enrollment, network, and software instructions depend on the supplied model and approved configuration.</p></div>
+        <div className="product-usage-grid"><ol>{usageSteps.map((step, index) => <li key={step}><span>0{index + 1}</span><p>{step}</p></li>)}</ol><aside className="product-pdf-panel"><p>{product.pdf ? 'Product document' : 'Product guidance'}</p><h3>{product.pdf ? `Open the ${product.name} PDF.` : 'Open the Indian Infotech guidance PDF.'}</h3><span>{product.pdf ? 'Review the document supplied for this exact product before confirming the final site configuration.' : 'Use the brochure for product families, operating context, and solution questions. Request the model-specific manual or datasheet when your configuration is confirmed.'}</span>{product.pdf ? <a className="button button-primary" href={product.pdf} target="_blank" rel="noreferrer">Open product PDF ↗</a> : <a className="button button-primary" href="/indian-infotech-company-brochure.pdf" target="_blank" rel="noreferrer">Open guidance PDF ↗</a>}</aside></div>
+      </section>
+
+      <section className="product-discovery">
+        <div><p className="section-kicker light">Before specification</p><h2>Five questions shape the right selection.</h2></div>
+        <ol>
+          <li><span>01</span><strong>Who needs to authenticate?</strong><p>Employees, contractors, visitors, or mixed populations.</p></li>
+          <li><span>02</span><strong>Where will it operate?</strong><p>Office, plant, gate, controlled room, or exposed entrance.</p></li>
+          <li><span>03</span><strong>What must it connect to?</strong><p>Attendance, access, HRMS, visitor, or other approved systems.</p></li>
+          <li><span>04</span><strong>How should exceptions work?</strong><p>Define fallback, approvals, offline operation, and support.</p></li>
+          <li><span>05</span><strong>What rollout is practical?</strong><p>Single location, phased sites, or multi-location operation.</p></li>
+        </ol>
+      </section>
+
+      <section className="section product-resources-section">
+        <div className="section-heading split-heading"><div><p className="section-kicker">Downloads and support</p><h2>Product-specific documents, where available.</h2></div><p>{product.pdf ? `The ${product.name} PDF below is linked only to this product page.` : `A product-specific PDF has not been supplied for ${product.name}, so the company guidance brochure remains available.`}</p></div>
+        <div className="product-resource-grid">
+          <article><span>01 / SPECIFICATION</span><h3>Published specification summary</h3><p>Download the current catalogue fields shown on this page, with configuration limits stated clearly.</p><a href={`/products/${product.slug}/specification`} download>Download summary ↓</a></article>
+          <article><span>02 / {product.pdf ? 'PRODUCT PDF' : 'GUIDANCE'}</span><h3>{product.pdf ? `${product.name} document` : 'Product guidance PDF'}</h3><p>{product.pdf ? `Open the supplied PDF for ${product.name}.` : 'Review product families and operating context before requesting a model-specific manual.'}</p>{product.pdf ? <a href={product.pdf} target="_blank" rel="noreferrer">Open product PDF ↗</a> : <a href="/indian-infotech-company-brochure.pdf" target="_blank" rel="noreferrer">Open guidance PDF ↗</a>}</article>
+          <article><span>03 / SOFTWARE</span><h3>Compatibility guidance</h3><p>Confirm supported software, integration method, and deployment requirements.</p><Link href={`/contact?product=${product.slug}&resource=compatibility`}>Verify compatibility ↗</Link></article>
+          <article><span>04 / DATASHEET</span><h3>Approved manufacturer datasheet</h3><p>Request the current model- and variant-specific source before procurement.</p><Link href={`/contact?product=${product.slug}&resource=datasheet`}>Request datasheet ↗</Link></article>
+        </div>
+      </section>
+
+      {related.length > 0 && (
+        <section className="section related-products">
+          <div className="section-heading split-heading"><div><p className="section-kicker">Related products</p><h2>Continue comparing within the same family.</h2></div><Link className="outline-link" href="/products">View catalogue</Link></div>
+          <div className="catalog-grid">
+            {related.map((item) => (
+              <Link className="catalog-card related-card" href={`/products/${item.slug}`} key={item.slug}>
+                <div className="catalog-visual">{item.image ? <Image src={item.image} alt={`${item.name} product`} width={420} height={420} /> : <span className="media-pending">Media pending</span>}</div>
+                <div className="catalog-card-copy"><p>{item.family}</p><h3>{item.name}</h3><span>{item.description}</span></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="section seo-faq"><div className="section-heading"><p className="section-kicker">Frequently asked questions</p><h2>Confirm the product in its deployment context.</h2></div><div>{productFaqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}</div></section>
+      <SiteFooter />
+    </main>
+  );
+}

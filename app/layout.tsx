@@ -1,0 +1,87 @@
+import type { Metadata, Viewport } from 'next';
+import { StructuredData } from '@/components/structured-data';
+import { Analytics } from '@/components/analytics';
+import { IS_INDEXABLE, SITE_URL } from '@/lib/site';
+import { companyProfile, postalAddressSchema } from '@/lib/company-profile';
+import { SiteSplash } from '@/components/site-splash';
+import './globals.css';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: 'Access Control & Attendance Products | Indian Infotech',
+  description:
+    'Explore Indian Infotech access control, biometric attendance, HRMS, payroll, and workplace products for businesses across India.',
+  applicationName: 'Indian Infotech',
+  authors: [{ name: 'Indian Infotech' }],
+  creator: 'Indian Infotech',
+  publisher: 'Indian Infotech',
+  formatDetection: { email: false, address: false, telephone: false },
+  robots: IS_INDEXABLE ? { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } } : { index: false, follow: false },
+  icons: { icon: '/favicon.svg' },
+  manifest: '/manifest.webmanifest',
+  verification: process.env.GOOGLE_SITE_VERIFICATION || process.env.BING_SITE_VERIFICATION ? {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: process.env.BING_SITE_VERIFICATION ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION } : undefined,
+  } : undefined,
+  openGraph: {
+    siteName: 'Indian Infotech',
+    locale: 'en_IN',
+    type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Indian Infotech workforce and workplace systems' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/og.png'] },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': ['Organization', 'LocalBusiness'], '@id': `${SITE_URL}/#organization`, name: companyProfile.name, url: SITE_URL,
+      logo: `${SITE_URL}/indian-infotech-logo.png`, image: `${SITE_URL}/og.png`, foundingDate: String(companyProfile.foundedYear), email: companyProfile.email, telephone: companyProfile.phoneSchema,
+      description: 'Indian Infotech provides workforce software, attendance, access control, entrance management, and connected workplace systems for organizations in India.',
+      knowsAbout: ['Workforce management', 'Biometric attendance', 'Access control', 'Visitor management', 'Entrance control', 'Canteen management', 'HRMS and payroll', 'Door interlocking', 'Workplace media', 'Industrial AI'],
+      contactPoint: [
+        { '@type': 'ContactPoint', contactType: 'sales', email: companyProfile.email, telephone: companyProfile.phoneSchema },
+        { '@type': 'ContactPoint', contactType: 'technical support', email: companyProfile.supportEmail, telephone: companyProfile.phoneSchema },
+      ],
+      sameAs: [companyProfile.linkedInHref],
+      address: postalAddressSchema,
+      areaServed: { '@type': 'Country', name: 'India' },
+    },
+    {
+      '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: SITE_URL, name: 'Indian Infotech', publisher: { '@id': `${SITE_URL}/#organization` },
+      potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/search?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
+    },
+  ],
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/geist-mono.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
+      <body>
+        <SiteSplash />
+        <a className="skip-link" href="#main-content">Skip to main content</a>
+        <StructuredData data={organizationSchema} />
+        <div id="main-content" tabIndex={-1}>{children}</div>
+        <a className="floating-whatsapp" href={companyProfile.whatsappHref} target="_blank" rel="noreferrer" aria-label="Chat with Indian Infotech on WhatsApp">
+          <img className="floating-whatsapp-logo" src="/whatsapp-logo.svg" alt="" width="28" height="28" />
+        </a>
+        <Analytics />
+      </body>
+    </html>
+  );
+}

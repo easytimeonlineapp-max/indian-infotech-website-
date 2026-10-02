@@ -1,0 +1,186 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { clientQuotes, customerOrganizations } from '@/app/content';
+import { insights } from '@/app/insights/content';
+import { companyStats, completedYearsSince } from '@/lib/company-profile';
+
+const industries = [
+  { name: 'Pharma', slug: 'pharma', icon: '/industries/icons/pharma.png', eyebrow: 'Controlled environments', title: 'Clean movement through every critical zone.', text: 'Coordinate shifts, visitors, clean-room access, and workforce records around the discipline of regulated facilities.', image: '/generated/industries/pharma-workplace-v2.png', alt: 'Pharmaceutical technician using an access reader beside a stainless cleanroom interlock door' },
+  { name: 'Chemical', slug: 'chemical', icon: '/industries/icons/chemical.png', eyebrow: 'Safety-led operations', title: 'The right people, in the right operating areas.', text: 'Connect identity, attendance, contractor movement, and controlled access across complex processing environments.', image: '/generated/industries/chemical-workplace-v1.webp', alt: 'Original 3D scene of controlled workforce entry at a chemical processing plant' },
+  { name: 'Textiles', slug: 'textile', icon: '/industries/icons/textiles.png', eyebrow: 'Coordinated production', title: 'Keep every shift and production line in sync.', text: 'Bring attendance, entry, and distributed workforce visibility into fast-moving textile operations.', image: '/generated/industries/textiles-workplace-v1.webp', alt: 'Original 3D scene of a connected modern textile production floor' },
+  { name: 'Manufacturing', slug: 'manufacturing', icon: '/industries/icons/manufacturing.png', eyebrow: 'Connected shop floors', title: 'One clear path from the gate to the work zone.', text: 'Manage shifts, contractors, entrance lanes, and restricted areas without slowing production.', image: '/generated/industries/manufacturing-workplace-v1.webp', alt: 'Original 3D scene of secure entry into an advanced manufacturing floor' },
+  { name: 'Service provider', slug: 'service-provider', icon: '/industries/icons/service-provider.png', eyebrow: 'People-first workplaces', title: 'A smoother arrival for teams and visitors.', text: 'Unify attendance, visitor flow, workplace access, and support across service-led organizations.', image: '/generated/industries/service-provider-workplace-v1.webp', alt: 'Original 3D scene of a connected professional services workplace' },
+  { name: 'Engineering', slug: 'engineering', icon: '/industries/icons/engineering.png', eyebrow: 'Protected project spaces', title: 'Secure the journey from design to delivery.', text: 'Shape access and workforce workflows around studios, prototype floors, tools, and project zones.', image: '/generated/industries/engineering-workplace-v1.webp', alt: 'Original 3D scene of controlled access in an engineering and prototyping center' },
+  { name: 'Food industries', slug: 'food', icon: '/industries/icons/food-industries.png', eyebrow: 'Hygienic operations', title: 'Clean entry. Accountable shifts. Confident output.', text: 'Support hygiene checkpoints, attendance, and controlled production access across food facilities.', image: '/generated/industries/food-industries-workplace-v1.webp', alt: 'Original 3D scene of hygienic workforce entry in a food processing facility' },
+] as const;
+const news = insights.slice(0, 5).map((article) => ({ category: article.category === 'Company update' ? 'Company update' : article.sourceUrl ? 'From the original blog' : 'Research blog · Blog', title: article.title, href: `/insights/${article.slug}`, image: article.image }));
+
+function Reveal({ children, className = '', repeat = false }: { children: ReactNode; className?: string; repeat?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    let lastScrollY = window.scrollY;
+    let frame = 0;
+    const observer = new IntersectionObserver(([entry]) => {
+      cancelAnimationFrame(frame);
+      const scrollY = window.scrollY;
+      if (entry.isIntersecting && repeat) {
+        node.dataset.direction = scrollY < lastScrollY ? 'up' : 'down';
+        frame = requestAnimationFrame(() => { node.dataset.visible = 'true'; });
+      } else if (entry.isIntersecting) node.dataset.visible = 'true';
+      else if (repeat) delete node.dataset.visible;
+      if (entry.isIntersecting && !repeat) observer.disconnect();
+      lastScrollY = scrollY;
+    }, { threshold: .14 });
+    observer.observe(node);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+  }, [repeat]);
+  return <div className={`home-reveal ${className}`.trim()} ref={ref}>{children}</div>;
+}
+
+function AnimatedCount({ value, suffix, label }: { value: number; suffix: string; label: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    setShown(value - value);
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      const started = performance.now();
+      const animate = (now: number) => {
+        const progress = Math.min((now - started) / 1100, 1);
+        setShown(Math.round(value * (1 - (1 - progress) ** 3)));
+        if (progress < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    }, { threshold: .35 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [value]);
+  return <strong ref={ref} aria-label={`${value.toLocaleString('en-IN')}${suffix} ${label}`} data-final-value={value}>{shown.toLocaleString('en-IN')}{suffix}</strong>;
+}
+
+export function CompanyOverview() {
+  const destinationLogo = useRef<HTMLImageElement>(null);
+  const travellingLogo = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 760px)').matches) return;
+    const sourceLogo = document.querySelector<HTMLElement>('.site-header .brand');
+    const destination = destinationLogo.current;
+    const traveller = travellingLogo.current;
+    if (!sourceLogo || !destination || !traveller || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const source = sourceLogo.getBoundingClientRect();
+      const target = destination.getBoundingClientRect();
+      const targetTop = target.top + window.scrollY;
+      // Start the hand-off as the destination section enters the viewport. The
+      // travelling image is fixed, so its position must use viewport coordinates.
+      const start = 0;
+      const end = Math.max(start + 1, targetTop - window.innerHeight * .15);
+      const progress = Math.min(1, Math.max(0, (window.scrollY - start) / (end - start)));
+      const eased = progress * progress * (3 - 2 * progress);
+      const moving = progress > 0 && progress < 1;
+
+      sourceLogo.toggleAttribute('data-logo-travelling', progress > 0);
+      destination.style.opacity = progress < 1 ? '0' : '';
+      traveller.style.opacity = moving ? '1' : '0';
+      traveller.style.left = `${source.left + (target.left - source.left) * eased}px`;
+      traveller.style.top = `${source.top + (target.top - source.top) * eased}px`;
+      traveller.style.width = `${source.width + (target.width - source.width) * eased}px`;
+      traveller.style.height = `${source.height + (target.height - source.height) * eased}px`;
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      sourceLogo.removeAttribute('data-logo-travelling');
+      destination.style.opacity = '';
+    };
+  }, []);
+
+  return <>
+    <Image ref={travellingLogo} className="company-travelling-logo" src="/indian-infotech-logo.png" alt="" width={520} height={86} aria-hidden="true" />
+    <section className="home-company-page" aria-labelledby="why-indian-infotech">
+      <div className="home-company-waves" aria-hidden="true"><i /><i /><i /></div>
+      <Reveal className="home-company-identity">
+        <Image ref={destinationLogo} className="company-destination-logo" src="/indian-infotech-logo.png" alt="Indian Infotech" width={520} height={86} />
+        <Link className="home-certificate" href="/certification"><Image src="/iso-9001-certified.webp" alt="ISO 9001 certification information" width={440} height={160} /><span>Quality management certification · Learn why it matters →</span></Link>
+        <div className="home-fact-strip" aria-label="Indian Infotech company facts">{companyStats.map((fact) => <div key={fact.id}><AnimatedCount value={fact.id === 'years-experience' ? completedYearsSince(new Date()) : fact.value} suffix={fact.suffix} label={fact.label} /><span>{fact.label}</span></div>)}</div>
+      </Reveal>
+      <div className="home-company-copy">
+        <Reveal className="home-company-intro"><h2 id="why-indian-infotech">The Solution People</h2><span>Since 2011, Indian Infotech has shaped workforce, access, and workplace systems around real operating needs—helping teams work with greater efficiency and security.</span></Reveal>
+        <Reveal className="home-company-directions">
+          <Link className="home-direction-card" href="/about-us#vision"><p>Our vision</p><h3>Customer-led innovation with global relevance.</h3><span>Scalable solutions that respond to evolving business needs.</span><b>Explore vision →</b></Link>
+          <Link className="home-direction-card" href="/about-us#mission"><p>Our mission</p><h3>Efficient and secure everyday operations.</h3><span>Intuitive systems that strengthen productivity, security, and agility.</span><b>Explore mission →</b></Link>
+        </Reveal>
+      </div>
+    </section>
+  </>;
+}
+
+export function IndustriesAndClients() {
+  const [activeIndustry, setActiveIndustry] = useState(0);
+  const [industryHovered, setIndustryHovered] = useState(false);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressSwipeClickUntil = useRef(0);
+  const industry = industries[activeIndustry];
+
+  useEffect(() => {
+    if (industryHovered) return;
+    const timer = window.setInterval(() => setActiveIndustry((current) => (current + 1) % industries.length), 3000);
+    return () => window.clearInterval(timer);
+  }, [industryHovered]);
+
+  return <section className="home-industry-client-page" aria-labelledby="home-industries-heading">
+    <Reveal className="home-section-heading home-industry-heading"><p>Industries we serve</p><h2 id="home-industries-heading">Built for the way your industry moves.</h2><span>Explore how connected workforce, access, and workplace systems adapt to seven distinct operating realities.</span></Reveal>
+    <div className="home-industry-experience" onMouseEnter={() => setIndustryHovered(true)} onMouseLeave={() => setIndustryHovered(false)}>
+      <div className="home-industry-list" aria-label="Choose an industry">{industries.map((item, index) => <button type="button" aria-pressed={index === activeIndustry} onClick={() => setActiveIndustry(index)} onPointerEnter={() => setActiveIndustry(index)} onFocus={() => setActiveIndustry(index)} key={item.slug}><span className="home-industry-icon"><Image src={item.icon} alt="" width={52} height={52} /></span><strong>{item.name}</strong><i aria-hidden="true">↗</i></button>)}</div>
+      <div className="home-industry-stage" role="region" aria-label="Industries we serve" aria-roledescription="carousel" onPointerDown={(event) => { if (event.pointerType === 'mouse') return; swipeStart.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={(event) => { const start = swipeStart.current; swipeStart.current = null; if (!start) return; const dx = event.clientX - start.x; const dy = event.clientY - start.y; if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy)) return; setActiveIndustry((current) => (current + (dx < 0 ? 1 : -1) + industries.length) % industries.length); suppressSwipeClickUntil.current = Date.now() + 400; }} onPointerCancel={() => { swipeStart.current = null; }} onClickCapture={(event) => { if (Date.now() < suppressSwipeClickUntil.current) { event.preventDefault(); event.stopPropagation(); suppressSwipeClickUntil.current = 0; } }}>
+        <Image key={industry.image} src={industry.image} alt={industry.alt} fill sizes="(max-width: 980px) 100vw, 64vw" priority={activeIndustry === 0} />
+        <div className="home-industry-shade" />
+        <div className="home-industry-story" key={industry.slug}><span>{industry.eyebrow}</span><h3>{industry.title}</h3><p>{industry.text}</p><Link href={`/industries/${industry.slug}`}>Explore {industry.name.toLowerCase()} <b aria-hidden="true">↗</b></Link></div>
+        <span className="home-industry-count" aria-hidden="true">{String(activeIndustry + 1).padStart(2, '0')}<i />{String(industries.length).padStart(2, '0')}</span>
+      </div>
+    </div>
+    <Reveal className="home-client-heading"><p>2,500+ clients served</p><h2>Trusted by organizations across industries and 7+ countries.</h2><span>The logos below are a selection from our 2,500+ client base.</span></Reveal>
+    <Reveal className="home-client-grid" repeat>{customerOrganizations.map((customer) => <div key={customer.name}><Image src={customer.logo} alt={customer.name} width={131} height={60} /></div>)}</Reveal>
+  </section>;
+}
+
+export function QuotesAndNews() {
+  const [active, setActive] = useState(0);
+  const [quoteActive, setQuoteActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const quoteSwipeStart = useRef<{ x: number; y: number } | null>(null);
+  const newsSwipeStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressNewsClickUntil = useRef(0);
+  useEffect(() => { if (paused) return; const timer = window.setInterval(() => setActive((current) => (current + 1) % news.length), 3000); return () => clearInterval(timer); }, [paused]);
+  useEffect(() => { const timer = window.setInterval(() => setQuoteActive((current) => (current + 1) % clientQuotes.length), 3000); return () => clearInterval(timer); }, []);
+  const move = (direction: number) => setActive((current) => (current + direction + news.length) % news.length);
+  const moveQuote = (direction: number) => setQuoteActive((current) => (current + direction + clientQuotes.length) % clientQuotes.length);
+  return <section className="home-quotes-news-page" aria-labelledby="client-quotes-heading">
+    <Reveal className="home-quote-reveal">
+    <div className="home-quote-heading-row"><div className="home-section-heading"><p>Client’s Quote</p><h2 id="client-quotes-heading">Feedback from teams we support.</h2></div><div className="home-quote-controls"><button type="button" onClick={() => moveQuote(-1)} aria-label="Previous client quote">←</button><button type="button" onClick={() => moveQuote(1)} aria-label="Next client quote">→</button></div></div>
+    <div className="home-quote-viewport" role="region" aria-roledescription="carousel" aria-label="Client quotes" onPointerDown={(event) => { if (event.pointerType === 'mouse') return; quoteSwipeStart.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={(event) => { const start = quoteSwipeStart.current; quoteSwipeStart.current = null; if (!start) return; const dx = event.clientX - start.x; const dy = event.clientY - start.y; if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy)) setQuoteActive((current) => (current + (dx < 0 ? 1 : -1) + clientQuotes.length) % clientQuotes.length); }} onPointerCancel={() => { quoteSwipeStart.current = null; }}><div className="home-quote-track" style={{ transform: `translate3d(-${quoteActive * 100}%,0,0)` }}>{clientQuotes.map((item, index) => <blockquote aria-hidden={index !== quoteActive} className="home-quote-slide" key={item.company}><div><span className="home-quote-logo-hover"><Image unoptimized className="home-quote-logo" src={item.logo} alt={`${item.company} logo`} width={220} height={78} /></span></div><p>“{item.quote}”</p><cite>— {item.company}</cite></blockquote>)}</div></div>
+    <div className="home-quote-dots" aria-label="Choose client quote">{clientQuotes.map((item, index) => <button type="button" aria-label={`Show ${item.company} quote`} aria-current={index === quoteActive} onClick={() => setQuoteActive(index)} key={item.company} />)}</div>
+    </Reveal>
+    <div className="home-news-header-row"><div className="home-news-heading"><p>News &amp; blogs</p><h2>Practical thinking for modern workplaces.</h2></div><div className="home-news-controls"><button type="button" onClick={() => move(-1)} aria-label="Previous article">←</button><button type="button" onClick={() => move(1)} aria-label="Next article">→</button></div></div>
+    <div className="home-news-viewport" role="region" aria-roledescription="carousel" aria-label="News and blog articles" onPointerEnter={(event) => { if (event.pointerType === 'mouse') setPaused(true); }} onPointerLeave={(event) => { if (event.pointerType === 'mouse') setPaused(false); }} onPointerDown={(event) => { if (event.pointerType === 'mouse') return; newsSwipeStart.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={(event) => { if (event.pointerType !== 'mouse') setPaused(false); const start = newsSwipeStart.current; newsSwipeStart.current = null; if (!start) return; const dx = event.clientX - start.x; const dy = event.clientY - start.y; if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy)) return; setActive((current) => (current + (dx < 0 ? 1 : -1) + news.length) % news.length); suppressNewsClickUntil.current = Date.now() + 400; }} onPointerCancel={() => { newsSwipeStart.current = null; }} onClickCapture={(event) => { if (Date.now() < suppressNewsClickUntil.current) { event.preventDefault(); event.stopPropagation(); suppressNewsClickUntil.current = 0; } }} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}><div className="home-news-track" style={{ transform: `translate3d(-${active * 100}%,0,0)` }}>{news.map((item, index) => <Link href={item.href} aria-hidden={index !== active} tabIndex={index === active ? undefined : -1} key={item.title}><div><Image src={item.image} alt={`Illustration for ${item.title}`} fill sizes="(max-width: 760px) 100vw, 50vw" /></div><span>{item.category}</span><h3>{item.title}</h3><b>Read more ↗</b></Link>)}</div></div>
+    <div className="home-news-dots" aria-label="Choose article">{news.map((item, index) => <button type="button" aria-label={`Show ${item.title}`} aria-current={index === active} onClick={() => setActive(index)} key={item.title} />)}</div>
+  </section>;
+}

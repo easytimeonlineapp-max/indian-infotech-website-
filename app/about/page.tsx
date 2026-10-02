@@ -1,0 +1,53 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { createPageMetadata } from '@/lib/site';
+import { PageHero } from '../_components/page-hero';
+import { SiteFooter } from '../_components/site-footer';
+import { SiteHeader } from '../_components/site-header';
+import { companyFacts } from '../content';
+
+export const metadata: Metadata = createPageMetadata({ title: 'About Indian Infotech', description: 'Founded in Ahmedabad in 2011, Indian Infotech develops HRMS, biometric attendance, access control, and clean-room systems.', path: '/about-us' });
+
+const strengths = ['Comprehensive HRMS Solutions', 'Robust Access Control Systems', 'Advanced Biometric Integrations', 'Tailored Industry-specific Applications'] as const;
+
+export default function AboutPage() {
+  return <main>
+    <SiteHeader />
+    <PageHero eyebrow="About us" title="Inventing Tomorrow’s Infotech Today" description="Founded in 2011, Indian Infotech has established itself as a prominent leader in Human Resource Management Systems and access control technologies." marker="II / SINCE 2011" />
+
+    <section className="about-story about-origin">
+      <div><p className="section-kicker">Indian Infotech</p><h2>Advanced, secure, and intuitive workplace technology.</h2></div>
+      <div><p>Founded in 2011, Indian Infotech has established itself as a prominent leader in Human Resource Management Systems (HRMS) and access control technologies. Our commitment to excellence is showcased in our advanced, secure, and intuitive products that streamline time office management and ensure controlled access to facilities.</p><p>We understand the importance of precise, reliable systems in today’s fast-paced business environments. Our experienced team drives innovation, providing industries with key tools for enhanced performance and modernized workplaces. Understanding the customer’s needs and providing them with the best solution has been the hallmark for its success.</p></div>
+    </section>
+
+    <section className="about-direction-grid" aria-label="Indian Infotech mission and vision">
+      <article id="mission"><p className="section-kicker">Our mission</p><h2>Operational efficiency with resilient security.</h2><p>We&apos;re committed to crafting intuitive solutions that empower businesses to enhance operational efficiencies, fortify their security infrastructures, and embrace digital transformation with resilience and agility.</p></article>
+      <article id="vision"><p className="section-kicker">Our vision</p><h2>Scalable systems for a global clientele.</h2><p>We aim to set new industry benchmarks, delivering bespoke, scalable solutions that resonate with the evolving needs of a global clientele, driving progress through customer-centric innovation.</p></article>
+    </section>
+
+    <section className="about-secure-section">
+      <div><p className="section-kicker light">Our expertise</p><h2>Crafting Secure Environments</h2></div>
+      <div><p>Indian Infotech is a catalyst for change in the specialized domain of HRMS and Office automation, leading the forefront in engineering advanced cleanroom technologies and door interlock systems. We&apos;ve nurtured innovation, offering tailored solutions that meet stringent quality and safety standards. Our expertise spans diverse applications, providing secure, smart, and controlled environments essential in today’s technological landscape.</p><p>Our passion for technological excellence has propelled us into significant partnerships across major corporates and industrial sectors. With a resolute focus on continuous improvement, Indian Infotech has become synonymous with reliability and advanced product offerings. From secure corporate offices to pristine pharma clean rooms, Indian Infotech is your ally in technological transformation.</p><p>We believe that cutting-edge technology is key to unlocking productivity and safety in any work environment. Our solutions, deeply rooted in industry innovations, are designed to empower your workforce with instant access to essential HRMS tools and attendance information. By integrating the latest in biometric recognition and access management, we provide real-time data to optimize workforce productivity and ensure robust access control, crafting a secure and efficient operation landscape.</p></div>
+    </section>
+
+    <section className="proof-strip internal-proof" aria-label="Company facts">{companyFacts.map((fact) => <div key={fact.label}><strong>{fact.value}</strong><span>{fact.label}</span></div>)}</section>
+
+    <section className="company-roadmap" aria-labelledby="company-timeline-title">
+      <div className="section-heading split-heading"><div><p className="section-kicker">Company timeline</p><h2 id="company-timeline-title">From time-office systems to connected workplaces.</h2></div><p>Every workplace has a point where manual follow-ups, uncertain entry, and scattered data begin to slow people down. Our road began by solving that work—then grew with the needs around it.</p></div>
+      <div className="roadmap-track" aria-label="Indian Infotech's journey from 2011 to today's connected workplace systems">
+        <span className="roadmap-line" aria-hidden="true"><i /></span>
+        <ol className="roadmap-stops">
+          <li><span className="roadmap-year">2011</span><div><p>Built for the daily time-office challenge.</p><h3>Indian Infotech begins in Ahmedabad.</h3><span>Founded as a partnership, focused on HRMS, office automation, access control, and clean-room door-interlock systems.</span></div></li>
+          <li><span className="roadmap-year">Today</span><div><p>One connected view of work and access.</p><h3>Systems that help operations move with confidence.</h3><span>Attendance, HRMS, payroll, access, entrance, visitor, canteen, media, and industrial AI systems come together around your workflow.</span></div></li>
+          <li className="roadmap-destination"><span className="roadmap-year">Next</span><div><p>Your practical next step.</p><h3>Bring the operational friction you are facing.</h3><span>Share your people, locations, entry points, and process. We’ll help map a solution that makes the next day of work clearer.</span><Link href="/solution-builder" className="roadmap-link">Map your workplace <span aria-hidden="true">↗</span></Link></div></li>
+        </ol>
+      </div>
+      <p className="roadmap-proof-note">Built on verified company information: founded in 2011 · IT services and consulting · 51–200 employees · partnership firm.</p>
+    </section>
+
+    <section className="about-why-section"><div><p className="section-kicker">Why Indian Infotech</p><h2>Technology blended with practicality.</h2><p>Our offerings are not just products but gateways to efficiency, security, and progress.</p></div><ul>{strengths.map((strength, index) => <li key={strength}><span>0{index + 1}</span>{strength}</li>)}</ul></section>
+
+    <section className="decision-band"><div><p className="section-kicker light">Need help?</p><h2>Take the Next Step with Indian Infotech.</h2></div><Link className="button button-primary" href="/contact">Contact us now <span aria-hidden="true">↗</span></Link></section>
+    <SiteFooter />
+  </main>;
+}

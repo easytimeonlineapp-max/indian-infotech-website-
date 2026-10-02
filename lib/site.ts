@@ -1,0 +1,44 @@
+import type { Metadata } from 'next';
+
+export const SITE_NAME = 'Indian Infotech';
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://indianinfotech.org').replace(/\/$/, '');
+export const IS_INDEXABLE = process.env.VERCEL_ENV ? process.env.VERCEL_ENV === 'production' : process.env.NODE_ENV === 'production';
+export const DEFAULT_OG_IMAGE = '/og.png';
+
+export function absoluteUrl(path = '/') {
+  return new URL(path, `${SITE_URL}/`).toString();
+}
+
+export function createPageMetadata({
+  title,
+  description,
+  path,
+  image = DEFAULT_OG_IMAGE,
+  keywords,
+  type = 'website',
+  noIndex = false,
+}: {
+  title: string;
+  description: string;
+  path: string;
+  image?: string | null;
+  keywords?: readonly string[];
+  type?: 'website' | 'article';
+  noIndex?: boolean;
+}): Metadata {
+  const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
+  const robots = noIndex || !IS_INDEXABLE
+    ? { index: false, follow: !noIndex }
+    : { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' as const, 'max-snippet': -1, 'max-video-preview': -1 } };
+  const socialImages = image ? [{ url: image, alt: fullTitle }] : undefined;
+
+  return {
+    title: { absolute: fullTitle },
+    description,
+    keywords: keywords ? [...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean))] : undefined,
+    alternates: { canonical: path },
+    robots,
+    openGraph: { title: fullTitle, description, url: path, siteName: SITE_NAME, locale: 'en_IN', type, images: socialImages },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title: fullTitle, description, images: image ? [image] : undefined },
+  };
+}
