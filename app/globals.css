@@ -1829,7 +1829,7 @@ h1 em { color: var(--teal-300); font-style: normal; font-weight: 500; }
 }
 .poster-eyebrow span { background: #9ecf09; height: 2px; width: 2.5rem; }
 .poster-hero h1, .poster-hero h2 {
-  color: #172033;
+  color: white;
   font-size: clamp(3.6rem, 7.2vw, 7.6rem);
   letter-spacing: -.075em;
   line-height: .9;

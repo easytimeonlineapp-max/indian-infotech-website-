@@ -12,6 +12,10 @@ export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const policy = contentSecurityPolicy(nonce);
 
+  if (request.nextUrl.pathname === '/favicon.ico') {
+    return secure(NextResponse.redirect(new URL('/favicon.svg', request.url), 308), policy);
+  }
+
   if (process.env.VERCEL && process.env.NODE_ENV === 'production' && request.headers.get('x-forwarded-proto') === 'http') {
     const secureUrl = request.nextUrl.clone();
     secureUrl.protocol = 'https:';
